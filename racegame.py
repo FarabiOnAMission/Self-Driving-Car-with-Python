@@ -9,16 +9,13 @@ GRASS_COLOR = (0, 100, 0)
 CAR_COLOR = (255, 0, 0)
 RAY_COLOR = (0, 255, 255)
 BORDER_COLOR = (255, 255, 255)
-CHECKPOINT_COLOR = (255, 0, 0) # Color for visible debug gates
+CHECKPOINT_COLOR = (255, 0, 0) 
 
 # START: Top Left, safely on the road, facing Right
 START_X, START_Y = 150, 200
 START_ANGLE = 0
 
 # --- DEFINE CHECKPOINTS (GATES) ---
-# I placed these roughly where your track points are.
-# Format: pygame.Rect(x, y, width, height)
-# You might need to tweak the sizes slightly to cover the full road width.
 CHECKPOINTS = [
     pygame.Rect(100, 150, 100, 100),   # 0: Start
     pygame.Rect(500, 150, 100, 100),   # 1: First Straight
@@ -46,9 +43,9 @@ class Car:
         self.alive = True
         
         # --- NEW FITNESS VARIABLES ---
-        self.current_checkpoint = 1 # Start by looking for index 1 (since we spawn at 0)
+        self.current_checkpoint = 1 
         self.fitness = 0
-        self.time_alive = 0 # Optional: To kill idle cars
+        self.time_alive = 0 
 
     def draw(self, screen):
         car_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
@@ -75,26 +72,21 @@ class Car:
         if (0 < self.x < WIDTH and 0 < self.y < HEIGHT):
             current_color = map_surface.get_at((int(self.x), int(self.y)))
             if current_color != ROAD_COLOR and current_color != CHECKPOINT_COLOR: 
-                # Note: We check != Checkpoint color so the debug lines don't kill us
                 self.alive = False
         else:
             self.alive = False
 
-        # --- 3. CHECKPOINT LOGIC (FIX FOR BACKWARDS DRIVING) ---
+        # --- 3. CHECKPOINT LOGIC  ---
         
-        # A. Check if we hit the NEXT checkpoint
         if CHECKPOINTS[self.current_checkpoint].collidepoint(self.x, self.y):
             self.fitness += 1000  # Big reward for progress
             self.current_checkpoint += 1
             print(f"Checkpoint {self.current_checkpoint-1} Reached! Fitness: {self.fitness}")
             
-            # If we finished the lap (index out of range)
             if self.current_checkpoint >= len(CHECKPOINTS):
                 self.current_checkpoint = 0 # Loop back to start (or end game)
                 self.fitness += 5000 # Lap bonus
 
-        # B. Check if we went BACKWARD (Hit the previous-previous checkpoint)
-        # We look 2 steps back. If I'm aiming for Gate 2, and I hit Gate 0, I went backward.
         elif self.current_checkpoint > 1:
             prev_cp_index = self.current_checkpoint - 2
             if CHECKPOINTS[prev_cp_index].collidepoint(self.x, self.y):
@@ -119,7 +111,7 @@ class Car:
             
             if (0 < check_x < WIDTH and 0 < check_y < HEIGHT):
                 pixel_color = map_surface.get_at((check_x, check_y))
-                # Ignore road AND our red checkpoint markers
+             
                 if pixel_color != ROAD_COLOR and pixel_color != CHECKPOINT_COLOR:
                     break
             else:
@@ -134,7 +126,7 @@ class Car:
 def draw_track(screen):
     screen.fill(GRASS_COLOR)
     
-    # This shape mimics the organic, non-grid style of Samuel Arzt's track
+   
     points = [
         (150, 200), (500, 200), (900, 400), (1100, 400),
         (1400, 150), (1700, 150), (1800, 300), (1800, 500),
@@ -147,13 +139,10 @@ def draw_track(screen):
     pygame.draw.lines(screen, ROAD_COLOR, True, points, 120)
 
     # --- DRAW DEBUG CHECKPOINTS ---
-    # We draw these so you can see where they are. 
-    # They are just outlines.
+ 
     for i, rect in enumerate(CHECKPOINTS):
         pygame.draw.rect(screen, CHECKPOINT_COLOR, rect, 2)
-        # Optional: Label them if you want
-        # font = pygame.font.SysFont("Arial", 12)
-        # screen.blit(font.render(str(i), True, (255,255,255)), (rect.x, rect.y))
+  
 
 
 # --- MAIN LOOP ---
@@ -203,4 +192,5 @@ def main():
     sys.exit()
 
 if __name__ == "__main__":
+
     main()
