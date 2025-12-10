@@ -9,25 +9,43 @@ GRASS_COLOR = (0, 100, 0)
 CAR_COLOR = (255, 0, 0)
 RAY_COLOR = (0, 255, 255)
 BORDER_COLOR = (255, 255, 255)
-CHECKPOINT_COLOR = (255, 0, 0) 
+CHECKPOINT_COLOR = (255, 0, 0)
+OBSTACLE_COLOR = (0, 0, 255)
 
 # START: Top Left, safely on the road, facing Right
 START_X, START_Y = 150, 200
 START_ANGLE = 0
 
-# --- DEFINE CHECKPOINTS (GATES) ---
+# --- DEFINE CHECKPOINTS ---
+# pygame.Rect(x, y, width, height)
 CHECKPOINTS = [
-    pygame.Rect(100, 150, 100, 100),   # 0: Start
-    pygame.Rect(500, 150, 100, 100),   # 1: First Straight
-    pygame.Rect(900, 350, 100, 100),   # 2: The Dip
-    pygame.Rect(1400, 100, 100, 100),  # 3: The Climb
-    pygame.Rect(1750, 250, 100, 100),  # 4: The Dive Top
-    pygame.Rect(1550, 550, 100, 100),  # 5: Technical Entry
-    pygame.Rect(1350, 850, 100, 100),  # 6: Technical Mid
-    pygame.Rect(950, 650, 100, 100),   # 7: The Hairpin Top
-    pygame.Rect(750, 850, 100, 100),   # 8: Hairpin Exit
-    pygame.Rect(250, 650, 100, 100),   # 9: Back Stretch
-    pygame.Rect(100, 350, 100, 100)    # 10: Final Turn (near start)
+    pygame.Rect(100, 150, 100, 100), #1
+    pygame.Rect(250, 150, 100, 100), #2
+    pygame.Rect(500, 150, 100, 100), #3
+    pygame.Rect(900, 350, 100, 100), #4
+    pygame.Rect(1250, 170, 100, 100), #5
+    pygame.Rect(1400, 100, 100, 100), #6
+    pygame.Rect(1750, 250, 100, 100), #7
+    pygame.Rect(1550, 550, 100, 100), #8
+    pygame.Rect(1480, 650, 100, 100), #9
+    pygame.Rect(1350, 850, 100, 100), #10
+    pygame.Rect(950, 690, 100, 100), #11
+    pygame.Rect(830, 690, 100, 100), #12
+    pygame.Rect(750, 850, 100, 100),  #13
+    pygame.Rect(250, 650, 100, 100),#14
+    pygame.Rect(230, 450, 100, 100),#15
+    pygame.Rect(100, 350, 100, 100)    #16
+]
+
+OBSTACLES = [
+    pygame.Rect(400, 160, 40, 40), 
+    pygame.Rect(750, 320, 30, 30),
+    pygame.Rect(1250, 250, 40, 40),
+    pygame.Rect(1750, 400, 30, 30),
+    pygame.Rect(1600, 700, 30, 30),
+    pygame.Rect(1250, 930, 40, 40),
+    pygame.Rect(850, 800, 30, 30),
+    pygame.Rect(260, 550, 40, 40),
 ]
 
 class Car:
@@ -60,7 +78,8 @@ class Car:
                 pygame.draw.circle(screen, RAY_COLOR, end_pos, 3)
 
     def update(self, map_surface):
-        if not self.alive: return
+        if not self.alive:
+            return
 
         # 1. Move
         rad = math.radians(self.angle)
@@ -68,31 +87,46 @@ class Car:
         self.y += math.sin(rad) * self.speed
         self.center = [int(self.x), int(self.y)]
 
-        # 2. Collision Check (Grass)
+        # 2. Collision Check (Grass & Obstacles)
         if (0 < self.x < WIDTH and 0 < self.y < HEIGHT):
+            for obs in OBSTACLES:
+                if obs.collidepoint(self.x, self.y):
+                    self.alive = False
+                    self.fitness -= 200
+
             current_color = map_surface.get_at((int(self.x), int(self.y)))
             if current_color != ROAD_COLOR and current_color != CHECKPOINT_COLOR: 
                 self.alive = False
         else:
             self.alive = False
 
-        # --- 3. CHECKPOINT LOGIC  ---
-        
-        if CHECKPOINTS[self.current_checkpoint].collidepoint(self.x, self.y):
-            self.fitness += 1000  # Big reward for progress
-            self.current_checkpoint += 1
-            print(f"Checkpoint {self.current_checkpoint-1} Reached! Fitness: {self.fitness}")
-            
-            if self.current_checkpoint >= len(CHECKPOINTS):
-                self.current_checkpoint = 0 # Loop back to start (or end game)
-                self.fitness += 5000 # Lap bonus
+        # 3. CHECKPOINT LOGIC
 
-        elif self.current_checkpoint > 1:
+        if self.current_checkpoint < len(CHECKPOINTS):
+            if CHECKPOINTS[self.current_checkpoint].collidepoint(self.x, self.y):
+                self.current_checkpoint += 1
+
+                print(f"Checkpoint {self.current_checkpoint-1} Reached!")
+
+                if self.current_checkpoint >= len(CHECKPOINTS):
+                    self.fitness += 10000
+                    self.alive=False
+
+        if self.current_checkpoint > 1:
             prev_cp_index = self.current_checkpoint - 2
             if CHECKPOINTS[prev_cp_index].collidepoint(self.x, self.y):
-                print("WENT BACKWARDS! KILLED.")
-                self.fitness -= 500 # Punishment
+                self.fitness -= 500
                 self.alive = False
+
+        if self.alive and self.current_checkpoint < len(CHECKPOINTS):
+            target = CHECKPOINTS[self.current_checkpoint]
+            target_center = target.center 
+            distance = math.hypot(self.x - target_center[0], self.y - target_center[1])
+
+            bonus = 500 - (distance / 4)
+            if bonus < 0: 
+                bonus = 0
+            self.fitness = (self.current_checkpoint * 1000) + bonus
 
         # 4. Cast Rays
         self.radars.clear()
@@ -101,7 +135,7 @@ class Car:
 
     def cast_ray(self, angle_offset, map_surface):
         length = 0
-        max_len = 65 
+        max_len = 70 
         ray_angle = math.radians(self.angle + angle_offset)
         
         while length < max_len:
@@ -111,7 +145,6 @@ class Car:
             
             if (0 < check_x < WIDTH and 0 < check_y < HEIGHT):
                 pixel_color = map_surface.get_at((check_x, check_y))
-             
                 if pixel_color != ROAD_COLOR and pixel_color != CHECKPOINT_COLOR:
                     break
             else:
@@ -122,11 +155,9 @@ class Car:
     def get_data(self):
         return [int(r[0]) for r in self.radars]
 
-# --- THE "DEEP LEARNING TRIBUTE" TRACK ---
 def draw_track(screen):
     screen.fill(GRASS_COLOR)
-    
-   
+
     points = [
         (150, 200), (500, 200), (900, 400), (1100, 400),
         (1400, 150), (1700, 150), (1800, 300), (1800, 500),
@@ -139,11 +170,11 @@ def draw_track(screen):
     pygame.draw.lines(screen, ROAD_COLOR, True, points, 120)
 
     # --- DRAW DEBUG CHECKPOINTS ---
- 
     for i, rect in enumerate(CHECKPOINTS):
         pygame.draw.rect(screen, CHECKPOINT_COLOR, rect, 2)
-  
 
+    for obs in OBSTACLES:
+        pygame.draw.rect(screen, OBSTACLE_COLOR, obs)
 
 # --- MAIN LOOP ---
 def main():
@@ -177,13 +208,11 @@ def main():
         car.draw(screen)
         
         if not car.alive:
-            # Reset
             car.alive = True
             car.x, car.y = START_X, START_Y
             car.angle = START_ANGLE 
-            car.current_checkpoint = 1 # Reset checkpoint progress
-            car.fitness = 0            # Reset fitness
-            print("Car Died. Resetting...")
+            car.current_checkpoint = 1 
+            car.fitness = 0       
             
         pygame.display.flip()
         clock.tick(60)
@@ -192,5 +221,4 @@ def main():
     sys.exit()
 
 if __name__ == "__main__":
-
     main()
