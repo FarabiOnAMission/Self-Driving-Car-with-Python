@@ -2,6 +2,7 @@
 
 A 2D autonomous driving simulation built from scratch in Python. This project implements a **Genetic Algorithm** to train a Neural Network, allowing cars to learn how to navigate a track without any pre-programmed driving logic or external ML libraries like PyTorch/TensorFlow.
 
+![Simulation Demo](image.png)
 ![Simulation Demo](screenshot1.png)
 ![Simulation Demo](screenshot2.png)
 ## 🧠 About The Project
