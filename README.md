@@ -30,10 +30,10 @@ The brain is a **Multi-Layer Perceptron (MLP)** built on the Micrograd engine.
 
 ### 3. The Learning (Evolution)
 The training process bypasses Calculus (Backpropagation) in favor of Darwinian Evolution:
-1.  **Spawn:** A generation of 15 cars is initialized with random weights.
-2.  **Evaluate:** Cars drive until they crash. Their "Fitness" is determined by the distance traveled.
-3.  **Selection:** Using **Tournament Selection**, the best-performing cars are chosen as parents.
-4.  **Mutation:** The offspring inherit weights from parents with slight random mutations (`rate=0.1`, `magnitude=0.2`).
+1.  **Spawn:** A generation of 60 cars is initialized with random weights.
+2.  **Evaluate:** Cars drive until they crash. Their "Fitness" is determined by the checkpoints and the distance from each checkpoint.
+3.  **Selection:** Using **weighted selection from the top 5**, the best-performing cars are chosen as parents.
+4.  **Mutation:** The offspring inherit weights from parents with slight random mutations.
 5.  **Repeat:** This loop continues, optimizing the network weights for survival.
 
 ## 🚀 Getting Started
