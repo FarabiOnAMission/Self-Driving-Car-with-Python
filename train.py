@@ -7,9 +7,9 @@ from micrograd.engine import Value
 from micrograd.nn import MLP
 
 
-population = 15
+population = 60
 mutate_rate=0.1
-mutate_amount = 0.20
+mutate_amount = 0.5
 
 def mutate(brain,rate,amount):
   new_brain = copy.deepcopy(brain)
@@ -19,11 +19,6 @@ def mutate(brain,rate,amount):
       p.data += random.uniform(-amount,amount)
 
   return new_brain
-
-def tournament_selection(cars,k=3):
-  
-  candidates= random.sample(cars,k)
-  return max(candidates, key=lambda c: c.fitness)
 
 def draw_dashboard(screen, font, generation, alive, best_dist):
     panel = pygame.Surface((220, 90))
@@ -129,17 +124,32 @@ def run_simulation():
           best_car=cars[0]
 
           new_cars = []
-
-          champion_brain = copy.deepcopy(best_car.brain)
-          champion = SuperCar(racegame.START_X,racegame.START_Y,brain=champion_brain)
-          new_cars.append(champion)
-
-          while(len(new_cars)<population):
-            parent = tournament_selection(cars,k=5)
-            child_brain = mutate(parent.brain,mutate_rate,mutate_amount)
-            
-            new_cars.append(SuperCar(racegame.START_X,racegame.START_Y,brain = child_brain))
+          did_win = best_car.current_checkpoint >= len(racegame.CHECKPOINTS)
           
+          if did_win:
+            champion_brain = copy.deepcopy(best_car.brain)
+            champion = SuperCar(racegame.START_X,racegame.START_Y,brain=champion_brain)
+            new_cars.append(champion)
+
+            while(len(new_cars)<population):
+              child_brain=mutate(champion_brain,rate=0.05,amount=0.1)
+              new_car = SuperCar(racegame.START_X, racegame.START_Y, brain=child_brain)
+              new_cars.append(new_car)
+          
+          else:
+            champion_brain = copy.deepcopy(best_car.brain)
+            champion = SuperCar(racegame.START_X,racegame.START_Y,brain=champion_brain)
+            new_cars.append(champion)
+
+            elites = cars[:5]
+            weights = [0.50,0.25,0.10,0.10,0.05]
+
+            while(len(new_cars)<population):
+              parent = random.choices(elites,weights,k=1)[0]
+              child_brain = mutate(parent.brain,mutate_rate,mutate_amount)
+              
+              new_cars.append(SuperCar(racegame.START_X,racegame.START_Y,brain = child_brain))
+            
           cars=new_cars
           generation+=1
         pygame.display.flip()
